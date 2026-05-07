@@ -1,0 +1,5 @@
+-- AlterTable: Add patient profile fields to User
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "age" INTEGER;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "gender" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "bloodGroup" TEXT;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "address" TEXT;

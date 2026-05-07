@@ -1,0 +1,138 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  patient
+  doctor
+  admin
+}
+
+enum AppointmentStatus {
+  pending
+  confirmed
+  completed
+  cancelled
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  refunded
+}
+
+model User {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  phone         String?
+  passwordHash  String
+  role          Role
+  avatarUrl     String?
+  age           Int?
+  gender        String?
+  bloodGroup    String?
+  address       String?
+  createdAt     DateTime @default(now())
+
+  doctorProfile   DoctorProfile?
+  appointments    Appointment[]  @relation("PatientAppointments")
+  reviews         Review[]
+  notifications   Notification[]
+}
+
+model DoctorProfile {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id])
+  specialization    String
+  experienceYears   Int
+  consultationFee   Float
+  bio               String
+  isVerified        Boolean  @default(false)
+  avgRating         Float    @default(0)
+
+  availabilityTemplates  AvailabilityTemplate[]
+  appointmentSlots       AppointmentSlot[]
+  appointments           Appointment[]  @relation("DoctorAppointments")
+  reviews                Review[]
+}
+
+model AvailabilityTemplate {
+  id              String   @id @default(cuid())
+  doctorId        String
+  doctor          DoctorProfile @relation(fields: [doctorId], references: [id])
+  dayOfWeek       Int      // 0 = Sunday, 6 = Saturday
+  startTime       String   // "09:00"
+  endTime         String   // "17:00"
+  slotDurationMins Int     @default(30)
+}
+
+model AppointmentSlot {
+  id          String   @id @default(cuid())
+  doctorId    String
+  doctor      DoctorProfile @relation(fields: [doctorId], references: [id])
+  date        DateTime
+  startTime   String
+  endTime     String
+  isBooked    Boolean  @default(false)
+  isBlocked   Boolean  @default(false)
+
+  appointment Appointment?
+}
+
+model Appointment {
+  id            String            @id @default(cuid())
+  patientId     String
+  patient       User              @relation("PatientAppointments", fields: [patientId], references: [id])
+  doctorId      String
+  doctor        DoctorProfile     @relation("DoctorAppointments", fields: [doctorId], references: [id])
+  slotId        String            @unique
+  slot          AppointmentSlot   @relation(fields: [slotId], references: [id])
+  status        AppointmentStatus @default(pending)
+  symptoms      String?
+  documents     String[]          @default([])
+  paymentStatus PaymentStatus     @default(pending)
+  paymentId     String?
+  createdAt     DateTime          @default(now())
+
+  prescription  Prescription?
+  reviews       Review[]
+}
+
+model Prescription {
+  id            String      @id @default(cuid())
+  appointmentId String      @unique
+  appointment   Appointment @relation(fields: [appointmentId], references: [id])
+  notes         String?
+  fileUrl       String?
+  createdAt     DateTime    @default(now())
+}
+
+model Review {
+  id            String      @id @default(cuid())
+  appointmentId String      @unique
+  appointment   Appointment @relation(fields: [appointmentId], references: [id])
+  patientId     String
+  patient       User        @relation(fields: [patientId], references: [id])
+  doctorId      String
+  doctor        DoctorProfile @relation(fields: [doctorId], references: [id])
+  rating        Int
+  comment       String?
+  createdAt     DateTime    @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  message   String
+  type      String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
